@@ -17,6 +17,8 @@ export const orders = pgTable("orders", {
   items: jsonb("items").notNull(),
   subtotal: integer("subtotal").notNull(),
   shipping: integer("shipping").notNull(),
+  couponCode: text("coupon_code"),
+  discount: integer("discount").notNull().default(0),
   total: integer("total").notNull(),
   status: varchar("status", { length: 20 }).notNull().default("PENDING"),
   paymentProvider: varchar("payment_provider", { length: 20 }).notNull().default("PHONEPE"),
@@ -60,27 +62,17 @@ export const products = pgTable("products", {
 export type ProductRow = typeof products.$inferSelect;
 export type NewProductRow = typeof products.$inferInsert;
 
-// ── Customer accounts (email + OTP login) ──────────────────────────────
+// ── Customer accounts (name + mobile number login, no OTP) ─────────────
 export const customers = pgTable("customers", {
   id: uuid("id").defaultRandom().primaryKey(),
-  email: text("email").notNull().unique(),
+  phone: varchar("phone", { length: 15 }).notNull().unique(),
   name: text("name").notNull().default(""),
-  phone: varchar("phone", { length: 15 }).notNull().default(""),
+  email: text("email"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
 });
 
 export type Customer = typeof customers.$inferSelect;
-
-// ── OTP tokens ──────────────────────────────────────────────────────────
-export const otpTokens = pgTable("otp_tokens", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  email: text("email").notNull(),
-  otp: varchar("otp", { length: 6 }).notNull(),
-  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-  used: boolean("used").notNull().default(false),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
 
 // ── Customer support / complaints ───────────────────────────────────────
 export const complaints = pgTable("complaints", {

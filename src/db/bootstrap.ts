@@ -74,26 +74,45 @@ async function run() {
     ALTER TABLE products ADD COLUMN IF NOT EXISTS colors jsonb NOT NULL DEFAULT '[]';
   `);
 
+  // Coupon support on orders (upgrading existing DB)
+  await db.execute(sql`
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_code text;
+  `);
+  await db.execute(sql`
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount integer NOT NULL DEFAULT 0;
+  `);
+
+  // ── Customers: name + mobile number login (no OTP) ──────────────────
   await db.execute(sql`
     CREATE TABLE IF NOT EXISTS customers (
       id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-      email text NOT NULL UNIQUE,
+      phone varchar(15) NOT NULL UNIQUE,
       name text NOT NULL DEFAULT '',
-      phone varchar(15) NOT NULL DEFAULT '',
+      email text,
       created_at timestamptz NOT NULL DEFAULT now(),
       last_login_at timestamptz
     );
   `);
 
+  // Upgrading from the old email-OTP schema: relax the old email
+  // NOT NULL constraint and make sure a unique index exists on phone.
   await db.execute(sql`
-    CREATE TABLE IF NOT EXISTS otp_tokens (
-      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-      email text NOT NULL,
-      otp varchar(6) NOT NULL,
-      expires_at timestamptz NOT NULL,
-      used boolean NOT NULL DEFAULT false,
-      created_at timestamptz NOT NULL DEFAULT now()
-    );
+    ALTER TABLE customers ALTER COLUMN email DROP NOT NULL;
+  `);
+  await db.execute(sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'customers_phone_unique'
+      ) THEN
+        ALTER TABLE customers ADD CONSTRAINT customers_phone_unique UNIQUE (phone);
+      END IF;
+    EXCEPTION WHEN OTHERS THEN
+      -- e.g. duplicate '' phone values from an older email-only schema —
+      -- skip the constraint rather than block app startup; the app-level
+      -- lookup-by-phone logic still works fine without it.
+      NULL;
+    END $$;
   `);
 
   await db.execute(sql`

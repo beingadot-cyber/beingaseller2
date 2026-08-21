@@ -9,6 +9,7 @@ import {
   sha256hex,
   PHONEPE_CONFIG,
 } from "@/lib/phonepe";
+import { onOrderPaid } from "@/lib/order-events";
 
 export const runtime = "nodejs";
 
@@ -42,6 +43,23 @@ export async function POST(req: Request) {
   }
 
   const base = appBaseUrl(req);
+
+  /* ── Free order (coupon covered 100%): skip the gateway entirely ── */
+  if (order.total === 0) {
+    const [updated] = await db
+      .update(orders)
+      .set({ status: "PAID", providerCode: "FREE_COUPON", updatedAt: new Date() })
+      .where(eq(orders.id, orderId))
+      .returning();
+
+    onOrderPaid(updated);
+
+    return NextResponse.json({
+      ok: true,
+      mode: "free",
+      url: `${base}/checkout/status?orderId=${orderId}`,
+    });
+  }
 
   /* ── Demo mode: no credentials configured yet ────────────── */
   if (!phonepeConfigured()) {

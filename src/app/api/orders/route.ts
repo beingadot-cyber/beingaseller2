@@ -4,6 +4,7 @@ import { orders } from "@/db/schema";
 import { shippingFor } from "@/data/products";
 import { getProductBySlug } from "@/db/products-repo";
 import { ensureSchema } from "@/db/bootstrap";
+import { findCoupon, computeDiscount } from "@/lib/coupons";
 
 export const runtime = "nodejs";
 
@@ -25,14 +26,14 @@ function bad(message: string) {
 }
 
 export async function POST(req: Request) {
-  let body: { customer?: CustomerInput; items?: CartItemInput[] };
+  let body: { customer?: CustomerInput; items?: CartItemInput[]; couponCode?: string };
   try {
     body = await req.json();
   } catch {
     return bad("Invalid request body.");
   }
 
-  const { customer, items } = body;
+  const { customer, items, couponCode } = body;
 
   /* ── Validate customer ─────────────────────────── */
   if (!customer) return bad("Customer details are missing.");
@@ -92,7 +93,18 @@ export async function POST(req: Request) {
 
   const subtotal = lineItems.reduce((sum, i) => sum + i.price * i.qty, 0);
   const shipping = shippingFor(subtotal);
-  const total = subtotal + shipping;
+
+  /* ── Coupon (optional) ─────────────────────────────────────── */
+  let discount = 0;
+  let appliedCouponCode: string | null = null;
+  if (couponCode) {
+    const coupon = findCoupon(couponCode);
+    if (!coupon) return bad("That coupon code isn't valid.");
+    discount = computeDiscount(coupon, subtotal + shipping);
+    appliedCouponCode = coupon.code;
+  }
+
+  const total = Math.max(subtotal + shipping - discount, 0);
 
   try {
     const [order] = await db
@@ -110,13 +122,15 @@ export async function POST(req: Request) {
         items: lineItems,
         subtotal,
         shipping,
+        couponCode: appliedCouponCode,
+        discount,
         total,
         status: "PENDING",
         paymentProvider: "PHONEPE",
       })
       .returning({ id: orders.id });
 
-    return NextResponse.json({ ok: true, orderId: order.id, total });
+    return NextResponse.json({ ok: true, orderId: order.id, total, discount });
   } catch (err) {
     console.error("[orders] insert failed:", err);
     return NextResponse.json(

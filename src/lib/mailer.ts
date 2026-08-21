@@ -1,44 +1,10 @@
 /**
- * Sends email via Gmail SMTP using fetch to a simple relay,
- * or via Nodemailer if available. We use a lightweight fetch-based
- * approach compatible with Vercel Edge / Node runtime.
+ * Sends order-confirmation email via Gmail SMTP (Nodemailer).
  *
  * Required env vars:
  *   GMAIL_USER   = beingadot@gmail.com
  *   GMAIL_PASS   = <16-char Google App Password>
  */
-
-export async function sendOtpEmail(to: string, otp: string): Promise<void> {
-  const user = process.env.GMAIL_USER ?? "beingadot@gmail.com";
-  const pass = process.env.GMAIL_PASS ?? "";
-
-  if (!pass) {
-    // Dev mode — just log the OTP
-    console.log(`[OTP] ${to} → ${otp}`);
-    return;
-  }
-
-  // Use Nodemailer dynamically
-  const nodemailer = await import("nodemailer");
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: { user, pass },
-  });
-
-  await transporter.sendMail({
-    from: `"Beingaseller" <${user}>`,
-    to,
-    subject: "Your Beingaseller Login OTP",
-    html: `
-      <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;background:#08080f;color:#f1f1f1;border-radius:16px;padding:32px">
-        <div style="font-size:24px;font-weight:800;margin-bottom:8px">BEINGA<span style="color:#c8ff00">SELLER</span></div>
-        <div style="font-size:14px;color:#888;margin-bottom:24px">Your one-time login code</div>
-        <div style="font-size:48px;font-weight:900;letter-spacing:12px;color:#c8ff00;text-align:center;padding:24px;background:#13131f;border-radius:12px;margin-bottom:24px">${otp}</div>
-        <div style="font-size:13px;color:#666">This code expires in <strong style="color:#f1f1f1">10 minutes</strong>. Do not share it with anyone.</div>
-      </div>
-    `,
-  });
-}
 
 export async function sendOrderConfirmationEmail(
   to: string,

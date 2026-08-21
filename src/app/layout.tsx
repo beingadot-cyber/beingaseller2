@@ -3,8 +3,10 @@ import { Syne, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/components/cart-provider";
 import { ProductsProvider } from "@/context/products-context";
+import { AuthProvider } from "@/context/auth-context";
 import { Navbar } from "@/components/navbar";
 import { CartDrawer } from "@/components/cart-drawer";
+import { LoginModal } from "@/components/login-modal";
 import { Footer } from "@/components/footer";
 import { listActiveProducts } from "@/db/products-repo";
 
@@ -62,12 +64,15 @@ export default async function RootLayout({
     <html lang="en" className={`${syne.variable} ${grotesk.variable}`}>
       <body className="noise min-h-screen bg-void font-sans text-white antialiased">
         <ProductsProvider initialProducts={initialProducts}>
-          <CartProvider>
-            <Navbar />
-            <CartDrawer />
-            <main>{children}</main>
-            <Footer />
-          </CartProvider>
+          <AuthProvider>
+            <CartProvider>
+              <Navbar />
+              <CartDrawer />
+              <LoginModal />
+              <main>{children}</main>
+              <Footer />
+            </CartProvider>
+          </AuthProvider>
         </ProductsProvider>
       </body>
     </html>

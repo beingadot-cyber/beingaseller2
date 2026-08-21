@@ -3,8 +3,7 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { orders } from "@/db/schema";
 import { phonepeBaseUrl, phonepeConfigured, sha256hex, PHONEPE_CONFIG } from "@/lib/phonepe";
-import { logOrder } from "@/lib/sheets";
-import { sendOrderConfirmationEmail } from "@/lib/mailer";
+import { onOrderPaid } from "@/lib/order-events";
 
 export const runtime = "nodejs";
 
@@ -23,21 +22,6 @@ function respond(order: typeof orders.$inferSelect, extra?: Partial<StatusPayloa
     city: order.city, state: order.state, items: order.items, ...extra,
   };
   return NextResponse.json({ ok: true, ...payload });
-}
-
-async function onOrderPaid(order: typeof orders.$inferSelect) {
-  const items = (order.items as { name: string; size: string; qty: number; price: number }[]) ?? [];
-  // Log to Google Sheets
-  logOrder({
-    id: order.id, customerName: order.customerName, phone: order.phone,
-    email: order.email ?? "", addressLine1: order.addressLine1,
-    city: order.city, state: order.state, pincode: order.pincode,
-    items, total: order.total, status: "PAID", createdAt: order.createdAt,
-  }).catch(console.error);
-  // Send confirmation email
-  if (order.email) {
-    sendOrderConfirmationEmail(order.email, order.customerName, order.id, items, order.total).catch(console.error);
-  }
 }
 
 export async function POST(req: Request) {

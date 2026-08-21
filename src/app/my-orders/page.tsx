@@ -4,10 +4,10 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Loader2, LogOut, Package, PackageCheck, XCircle, Clock, MessageSquare } from "lucide-react";
 import { formatINR } from "@/data/products";
+import { useAuth } from "@/context/auth-context";
 
 type OrderItem = { name: string; size: string; qty: number; price: number; image?: string };
 type Order = { id: string; shortId: string; status: string; total: number; items: OrderItem[]; city: string; state: string; createdAt: string; demo: boolean };
-type Customer = { id: string; email: string; name: string; phone: string };
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   PAID: { label: "Confirmed", color: "text-green-400 bg-green-400/10 border-green-400/20", icon: <PackageCheck size={14} /> },
@@ -16,25 +16,26 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: React.
 };
 
 export default function MyOrdersPage() {
-  const [customer, setCustomer] = useState<Customer | null>(null);
+  const { customer, loading: authLoading, openLogin, logout: authLogout } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [phone, setPhone] = useState("");
-  const [searchPhone, setSearchPhone] = useState("");
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    fetch("/api/auth/me").then((r) => r.json()).then((d) => {
-      if (d.ok && d.customer) { setCustomer(d.customer); loadOrders(undefined, d.customer.email); }
-      else setLoading(false);
-    });
-  }, []);
+    if (authLoading) return;
+    if (customer) {
+      loadOrders(customer.phone);
+    } else {
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading, customer]);
 
-  async function loadOrders(ph?: string, em?: string) {
+  async function loadOrders(ph?: string) {
     setLoading(true); setNotFound(false);
     const params = new URLSearchParams();
     if (ph) params.set("phone", ph);
-    if (em) params.set("email", em);
     const res = await fetch(`/api/my-orders?${params}`);
     const data = await res.json();
     setLoading(false);
@@ -43,8 +44,8 @@ export default function MyOrdersPage() {
   }
 
   async function logout() {
-    await fetch("/api/auth/logout", { method: "POST" });
-    setCustomer(null); setOrders([]);
+    await authLogout();
+    setOrders([]);
   }
 
   return (
@@ -55,7 +56,7 @@ export default function MyOrdersPage() {
           <div>
             <p className="text-[0.65rem] font-bold uppercase tracking-[0.3em] text-acid mb-3">Your Orders</p>
             <h1 className="font-display text-4xl font-extrabold">Order History</h1>
-            {customer && <p className="mt-2 text-sm text-fog">{customer.email}</p>}
+            {customer && <p className="mt-2 text-sm text-fog">{customer.name} · {customer.phone}</p>}
           </div>
           {customer && (
             <button onClick={logout} className="flex items-center gap-2 text-xs text-fog hover:text-red-400 transition-colors">
@@ -67,20 +68,20 @@ export default function MyOrdersPage() {
         {!customer && !loading && (
           <div className="glass rounded-3xl border border-line p-8 mb-8">
             <h2 className="font-display text-lg font-bold mb-2">Track by Phone</h2>
-            <p className="text-sm text-fog mb-4">Enter the mobile number you used at checkout, or <Link href="/login" className="text-acid underline">log in with email</Link>.</p>
+            <p className="text-sm text-fog mb-4">Enter the mobile number you used at checkout, or log in to save your order history for next time.</p>
             <div className="flex gap-3">
               <input value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} placeholder="10-digit mobile" maxLength={10}
                 className="flex-1 rounded-xl border border-line bg-panel px-4 py-3 text-sm outline-none focus:border-acid/60"
-                onKeyDown={(e) => e.key === "Enter" && phone.length === 10 && (loadOrders(phone), setSearchPhone(phone))} />
-              <button onClick={() => { loadOrders(phone); setSearchPhone(phone); }} disabled={phone.length !== 10}
+                onKeyDown={(e) => e.key === "Enter" && phone.length === 10 && loadOrders(phone)} />
+              <button onClick={() => loadOrders(phone)} disabled={phone.length !== 10}
                 className="rounded-xl bg-acid px-5 py-3 font-display text-sm font-bold text-void disabled:opacity-40 flex items-center gap-2">
                 Track <ArrowRight size={14} />
               </button>
             </div>
             <div className="mt-4 text-center text-xs text-fog">— or —</div>
-            <Link href="/login" className="mt-4 flex items-center justify-center gap-2 rounded-xl border border-acid/30 py-3 text-sm font-semibold text-acid hover:bg-acid/5 transition-colors">
-              Login with Email OTP →
-            </Link>
+            <button onClick={openLogin} className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-acid/30 py-3 text-sm font-semibold text-acid hover:bg-acid/5 transition-colors">
+              Login →
+            </button>
           </div>
         )}
 
@@ -90,7 +91,7 @@ export default function MyOrdersPage() {
           <div className="text-center py-16">
             <Package size={48} className="mx-auto mb-4 text-fog" />
             <p className="font-display text-lg font-bold">No orders found</p>
-            <p className="text-sm text-fog mt-2">Double-check your phone number or email.</p>
+            <p className="text-sm text-fog mt-2">Double-check your phone number.</p>
           </div>
         )}
 

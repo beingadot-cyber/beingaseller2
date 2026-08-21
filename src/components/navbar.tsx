@@ -3,8 +3,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Menu, Package, ShoppingBag, User, X } from "lucide-react";
+import { Menu, ShoppingBag, User, X } from "lucide-react";
 import { useCart } from "./cart-provider";
+import { useAuth } from "@/context/auth-context";
 
 const LINKS = [
   { href: "/products", label: "Shop" },
@@ -17,7 +18,7 @@ export function Navbar() {
   const { count, setOpen, hydrated } = useCart();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [customer, setCustomer] = useState<{ email: string } | null>(null);
+  const { customer, openLogin } = useAuth();
   const pathname = usePathname();
 
   useEffect(() => {
@@ -28,12 +29,6 @@ export function Navbar() {
   }, []);
 
   useEffect(() => { setMenuOpen(false); }, [pathname]);
-
-  useEffect(() => {
-    fetch("/api/auth/me").then((r) => r.json()).then((d) => {
-      if (d.ok && d.customer) setCustomer(d.customer);
-    }).catch(() => {});
-  }, [pathname]);
 
   return (
     <>
@@ -54,12 +49,20 @@ export function Navbar() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Link href={customer ? "/my-orders" : "/login"}
-              className="group relative grid size-11 place-items-center rounded-full border border-white/10 bg-white/5 transition-all hover:border-acid/60 hover:bg-acid/10"
-              aria-label="Account">
-              <User size={18} className="transition-transform group-hover:scale-110" />
-              {customer && <span className="absolute -right-1 -top-1 size-3 rounded-full bg-acid border-2 border-void" />}
-            </Link>
+            {customer ? (
+              <Link href="/my-orders"
+                className="group relative grid size-11 place-items-center rounded-full border border-white/10 bg-white/5 transition-all hover:border-acid/60 hover:bg-acid/10"
+                aria-label="Account">
+                <User size={18} className="transition-transform group-hover:scale-110" />
+                <span className="absolute -right-1 -top-1 size-3 rounded-full bg-acid border-2 border-void" />
+              </Link>
+            ) : (
+              <button onClick={openLogin}
+                className="group relative grid size-11 place-items-center rounded-full border border-white/10 bg-white/5 transition-all hover:border-acid/60 hover:bg-acid/10"
+                aria-label="Login">
+                <User size={18} className="transition-transform group-hover:scale-110" />
+              </button>
+            )}
             <button onClick={() => setOpen(true)} className="group relative grid size-11 place-items-center rounded-full border border-white/10 bg-white/5 transition-all hover:border-acid/60 hover:bg-acid/10" aria-label="Open cart">
               <ShoppingBag size={18} className="transition-transform group-hover:scale-110" />
               <AnimatePresence>
@@ -86,9 +89,15 @@ export function Navbar() {
                     {link.label}
                   </Link>
                 ))}
-                <Link href={customer ? "/my-orders" : "/login"} className="rounded-lg px-3 py-3 font-display text-sm font-semibold uppercase tracking-[0.18em] text-mist transition-colors hover:bg-white/5 hover:text-acid">
-                  {customer ? "My Account" : "Login"}
-                </Link>
+                {customer ? (
+                  <Link href="/my-orders" className="rounded-lg px-3 py-3 font-display text-sm font-semibold uppercase tracking-[0.18em] text-mist transition-colors hover:bg-white/5 hover:text-acid">
+                    My Account
+                  </Link>
+                ) : (
+                  <button onClick={openLogin} className="rounded-lg px-3 py-3 text-left font-display text-sm font-semibold uppercase tracking-[0.18em] text-mist transition-colors hover:bg-white/5 hover:text-acid">
+                    Login
+                  </button>
+                )}
               </div>
             </motion.div>
           )}

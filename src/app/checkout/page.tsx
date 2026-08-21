@@ -68,8 +68,47 @@ export default function CheckoutPage() {
   const [serverError, setServerError] = useState<string | null>(null);
   const [demoNotice, setDemoNotice] = useState(false);
 
+  const [couponInput, setCouponInput] = useState("");
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+  const [discount, setDiscount] = useState(0);
+  const [couponError, setCouponError] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
+
   const shipping = shippingFor(subtotal);
-  const total = subtotal + shipping;
+  const total = Math.max(subtotal + shipping - discount, 0);
+
+  async function applyCoupon() {
+    setCouponError("");
+    if (!couponInput.trim()) return;
+    setCouponLoading(true);
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponInput.trim(), subtotal }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        setCouponError(data.message || "Invalid coupon code.");
+        setAppliedCoupon(null);
+        setDiscount(0);
+        return;
+      }
+      setAppliedCoupon(data.code);
+      setDiscount(data.discount);
+    } catch {
+      setCouponError("Could not apply coupon. Try again.");
+    } finally {
+      setCouponLoading(false);
+    }
+  }
+
+  function removeCoupon() {
+    setAppliedCoupon(null);
+    setDiscount(0);
+    setCouponInput("");
+    setCouponError("");
+  }
 
   const set = (key: keyof FormState) => (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -119,6 +158,7 @@ export default function CheckoutPage() {
             pincode: form.pincode,
           },
           items: items.map((i) => ({ slug: i.slug, size: i.size, qty: i.qty })),
+          couponCode: appliedCoupon || undefined,
         }),
       });
       const orderData = await orderRes.json();
@@ -142,6 +182,9 @@ export default function CheckoutPage() {
         setDemoNotice(true);
         setPhaseText("Demo mode — simulating payment…");
         await new Promise((r) => setTimeout(r, 1400));
+      } else if (payData.mode === "free") {
+        setPhaseText("Coupon applied — order confirmed…");
+        await new Promise((r) => setTimeout(r, 900));
       } else {
         setPhaseText("Redirecting to secure payment…");
       }
@@ -441,7 +484,45 @@ export default function CheckoutPage() {
                   {shipping === 0 ? "FREE" : formatINR(shipping)}
                 </dd>
               </div>
+              {discount > 0 && (
+                <div className="flex justify-between">
+                  <dt className="text-acid">Coupon ({appliedCoupon})</dt>
+                  <dd className="font-semibold text-acid">-{formatINR(discount)}</dd>
+                </div>
+              )}
             </dl>
+
+            {/* Coupon code */}
+            <div className="mt-5 border-t border-line pt-5">
+              {appliedCoupon ? (
+                <div className="flex items-center justify-between rounded-xl border border-acid/30 bg-acid/5 px-4 py-3">
+                  <span className="text-xs font-semibold text-acid">
+                    &ldquo;{appliedCoupon}&rdquo; applied
+                  </span>
+                  <button onClick={removeCoupon} className="text-xs text-fog hover:text-white transition-colors">
+                    Remove
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    className="field flex-1 !py-2.5 text-sm uppercase"
+                    placeholder="Coupon code"
+                    value={couponInput}
+                    onChange={(e) => { setCouponInput(e.target.value); setCouponError(""); }}
+                    onKeyDown={(e) => e.key === "Enter" && applyCoupon()}
+                  />
+                  <button
+                    onClick={applyCoupon}
+                    disabled={couponLoading || !couponInput.trim()}
+                    className="shrink-0 rounded-xl border border-line px-4 text-xs font-bold uppercase tracking-wider text-mist hover:border-acid/60 hover:text-acid transition-colors disabled:opacity-50"
+                  >
+                    {couponLoading ? <Loader2 size={14} className="animate-spin" /> : "Apply"}
+                  </button>
+                </div>
+              )}
+              {couponError && <p className="mt-2 text-xs text-red-400">{couponError}</p>}
+            </div>
 
             <div className="mt-5 flex items-baseline justify-between border-t border-line pt-5">
               <span className="text-sm uppercase tracking-[0.2em] text-mist">Total</span>
@@ -461,7 +542,7 @@ export default function CheckoutPage() {
               ) : (
                 <Lock size={15} />
               )}
-              Pay {formatINR(total)} securely
+              {total === 0 ? "Place free order" : `Pay ${formatINR(total)} securely`}
             </motion.button>
 
             <div className="mt-5 flex flex-col gap-2.5 rounded-2xl border border-line bg-ink p-4">
