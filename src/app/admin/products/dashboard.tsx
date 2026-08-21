@@ -229,7 +229,7 @@ export function AdminDashboard({ initialProducts }: { initialProducts: AdminProd
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 pb-24 pt-24 sm:px-6">
+    <div className="mx-auto max-w-5xl px-4 pb-24 pt-6 sm:px-6">
       <div className="mb-8 flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-bold">Products</h1>
@@ -238,12 +238,6 @@ export function AdminDashboard({ initialProducts }: { initialProducts: AdminProd
         <div className="flex gap-2">
           <button onClick={openNew} className="btn-acid flex items-center gap-2 text-sm">
             <Plus size={15} /> Add product
-          </button>
-          <button
-            onClick={logout}
-            className="flex items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-white/60 hover:text-white"
-          >
-            <LogOut size={15} /> Log out
           </button>
         </div>
       </div>
