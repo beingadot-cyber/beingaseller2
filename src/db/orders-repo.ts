@@ -26,6 +26,11 @@ export async function updateOrderStatus(id: string, status: OrderStatus): Promis
   return row;
 }
 
+export async function deleteOrder(id: string): Promise<void> {
+  await ensureSchema();
+  await db.delete(orders).where(eq(orders.id, id));
+}
+
 export async function listComplaints(): Promise<Complaint[]> {
   await ensureSchema();
   return db.select().from(complaints).orderBy(desc(complaints.createdAt));
@@ -49,4 +54,9 @@ export async function updateComplaintStatus(
     .where(eq(complaints.id, id))
     .returning();
   return row;
+}
+
+export async function deleteComplaint(id: string): Promise<void> {
+  await ensureSchema();
+  await db.delete(complaints).where(eq(complaints.id, id));
 }

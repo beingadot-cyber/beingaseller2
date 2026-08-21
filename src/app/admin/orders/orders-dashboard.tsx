@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Loader2, Package } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2, Package, Trash2 } from "lucide-react";
 import { formatINR } from "@/data/products";
 import type { Order } from "@/db/schema";
 
@@ -31,6 +31,7 @@ export function OrdersDashboard({ initialOrders }: { initialOrders: Order[] }) {
   const [orders, setOrders] = useState<Order[]>(initialOrders);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("ALL");
 
   async function changeStatus(id: string, status: string) {
@@ -47,6 +48,21 @@ export function OrdersDashboard({ initialOrders }: { initialOrders: Order[] }) {
       }
     } finally {
       setUpdatingId(null);
+    }
+  }
+
+  async function deleteOrder(id: string, name: string) {
+    if (!confirm(`Delete this order from ${name}? This can't be undone.`)) return;
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/admin/orders/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.ok) {
+        setOrders((prev) => prev.filter((o) => o.id !== id));
+        if (expanded === id) setExpanded(null);
+      }
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -151,21 +167,37 @@ export function OrdersDashboard({ initialOrders }: { initialOrders: Order[] }) {
                       <div className="font-medium">Total {formatINR(order.total)}</div>
                     </div>
 
-                    <div className="flex items-center gap-2 border-t border-line pt-3">
-                      <span className="text-xs text-white/40">Update status:</span>
-                      <select
-                        value={order.status}
-                        disabled={updatingId === order.id}
-                        onChange={(e) => changeStatus(order.id, e.target.value)}
-                        className="rounded-lg border border-line bg-void px-2 py-1.5 text-sm outline-none focus:border-acid disabled:opacity-50"
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line pt-3">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-white/40">Update status:</span>
+                        <select
+                          value={order.status}
+                          disabled={updatingId === order.id}
+                          onChange={(e) => changeStatus(order.id, e.target.value)}
+                          className="rounded-lg border border-line bg-void px-2 py-1.5 text-sm outline-none focus:border-acid disabled:opacity-50"
+                        >
+                          {STATUS_OPTIONS.map((s) => (
+                            <option key={s} value={s}>
+                              {s}
+                            </option>
+                          ))}
+                        </select>
+                        {updatingId === order.id && (
+                          <Loader2 size={14} className="animate-spin text-white/40" />
+                        )}
+                      </div>
+                      <button
+                        onClick={() => deleteOrder(order.id, order.customerName)}
+                        disabled={deletingId === order.id}
+                        className="flex items-center gap-1.5 rounded-lg border border-red-500/30 px-3 py-1.5 text-xs text-red-300 hover:bg-red-500/10 disabled:opacity-50"
                       >
-                        {STATUS_OPTIONS.map((s) => (
-                          <option key={s} value={s}>
-                            {s}
-                          </option>
-                        ))}
-                      </select>
-                      {updatingId === order.id && <Loader2 size={14} className="animate-spin text-white/40" />}
+                        {deletingId === order.id ? (
+                          <Loader2 size={13} className="animate-spin" />
+                        ) : (
+                          <Trash2 size={13} />
+                        )}
+                        Delete order
+                      </button>
                     </div>
                   </div>
                 )}

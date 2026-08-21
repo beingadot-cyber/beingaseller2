@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { isAdminRequest } from "@/lib/require-admin";
-import { updateComplaintStatus, isComplaintStatus } from "@/db/orders-repo";
+import { updateComplaintStatus, isComplaintStatus, deleteComplaint } from "@/db/orders-repo";
 
 export const runtime = "nodejs";
 
@@ -24,4 +24,13 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     return NextResponse.json({ ok: false, message: "Complaint not found." }, { status: 404 });
   }
   return NextResponse.json({ ok: true, complaint });
+}
+
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  if (!(await isAdminRequest())) {
+    return NextResponse.json({ ok: false, message: "Unauthorized." }, { status: 401 });
+  }
+  const { id } = await params;
+  await deleteComplaint(id);
+  return NextResponse.json({ ok: true });
 }

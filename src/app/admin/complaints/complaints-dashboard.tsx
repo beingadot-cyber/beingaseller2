@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, MessageSquareWarning, Star } from "lucide-react";
+import { Loader2, MessageSquareWarning, Star, Trash2 } from "lucide-react";
 import type { Complaint } from "@/db/schema";
 
 const STATUS_OPTIONS = ["OPEN", "IN_PROGRESS", "RESOLVED"] as const;
@@ -24,6 +24,7 @@ function fmtDate(d: string | Date) {
 export function ComplaintsDashboard({ initialComplaints }: { initialComplaints: Complaint[] }) {
   const [complaints, setComplaints] = useState<Complaint[]>(initialComplaints);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [filter, setFilter] = useState<string>("ALL");
 
   async function changeStatus(id: string, status: string) {
@@ -40,6 +41,20 @@ export function ComplaintsDashboard({ initialComplaints }: { initialComplaints: 
       }
     } finally {
       setUpdatingId(null);
+    }
+  }
+
+  async function deleteComplaint(id: string, name: string) {
+    if (!confirm(`Delete this complaint from ${name}? This can't be undone.`)) return;
+    setDeletingId(id);
+    try {
+      const res = await fetch(`/api/admin/complaints/${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.ok) {
+        setComplaints((prev) => prev.filter((c) => c.id !== id));
+      }
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -113,21 +128,31 @@ export function ComplaintsDashboard({ initialComplaints }: { initialComplaints: 
               )}
               {c.comment && <p className="mb-3 text-sm text-white/80">&ldquo;{c.comment}&rdquo;</p>}
 
-              <div className="flex items-center gap-2 border-t border-line pt-3">
-                <span className="text-xs text-white/40">Update status:</span>
-                <select
-                  value={c.status}
-                  disabled={updatingId === c.id}
-                  onChange={(e) => changeStatus(c.id, e.target.value)}
-                  className="rounded-lg border border-line bg-void px-2 py-1.5 text-sm outline-none focus:border-acid disabled:opacity-50"
+              <div className="flex items-center justify-between gap-2 border-t border-line pt-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-white/40">Update status:</span>
+                  <select
+                    value={c.status}
+                    disabled={updatingId === c.id}
+                    onChange={(e) => changeStatus(c.id, e.target.value)}
+                    className="rounded-lg border border-line bg-void px-2 py-1.5 text-sm outline-none focus:border-acid disabled:opacity-50"
+                  >
+                    {STATUS_OPTIONS.map((s) => (
+                      <option key={s} value={s}>
+                        {s.replace("_", " ")}
+                      </option>
+                    ))}
+                  </select>
+                  {updatingId === c.id && <Loader2 size={14} className="animate-spin text-white/40" />}
+                </div>
+                <button
+                  onClick={() => deleteComplaint(c.id, c.customerName)}
+                  disabled={deletingId === c.id}
+                  className="flex items-center gap-1.5 rounded-lg border border-red-500/30 px-3 py-1.5 text-xs text-red-300 hover:bg-red-500/10 disabled:opacity-50"
                 >
-                  {STATUS_OPTIONS.map((s) => (
-                    <option key={s} value={s}>
-                      {s.replace("_", " ")}
-                    </option>
-                  ))}
-                </select>
-                {updatingId === c.id && <Loader2 size={14} className="animate-spin text-white/40" />}
+                  {deletingId === c.id ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
+                  Delete
+                </button>
               </div>
             </div>
           ))}
