@@ -29,6 +29,7 @@ function rowToProduct(row: ProductRow): AdminProduct {
     highlights: (row.highlights as string[]) ?? [],
     fabric: row.fabric,
     dispatch: row.dispatch,
+    meeshoUrl: row.meeshoUrl ?? "",
     active: row.active,
   };
 }
@@ -125,6 +126,7 @@ export type ProductInput = {
   highlights: string[];
   fabric: string;
   dispatch: string;
+  meeshoUrl: string;
   active: boolean;
 };
 

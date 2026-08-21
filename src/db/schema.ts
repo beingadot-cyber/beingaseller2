@@ -1,24 +1,10 @@
 import {
-  pgTable,
-  uuid,
-  text,
-  varchar,
-  integer,
-  jsonb,
-  boolean,
-  timestamp,
-  doublePrecision,
+  pgTable, uuid, text, varchar, integer, jsonb,
+  boolean, timestamp, doublePrecision, smallint,
 } from "drizzle-orm/pg-core";
 
-/**
- * Orders captured on the Beingaseller storefront.
- * Each row stores the full buyer snapshot (name / phone / address) so the
- * fulfilment automation can replay the exact same order upstream.
- */
 export const orders = pgTable("orders", {
   id: uuid("id").defaultRandom().primaryKey(),
-
-  // Buyer details
   customerName: text("customer_name").notNull(),
   phone: varchar("phone", { length: 15 }).notNull(),
   email: text("email"),
@@ -28,38 +14,22 @@ export const orders = pgTable("orders", {
   city: text("city").notNull(),
   state: text("state").notNull(),
   pincode: varchar("pincode", { length: 6 }).notNull(),
-
-  // Cart snapshot: [{ slug, name, size, qty, price }] — prices in INR
   items: jsonb("items").notNull(),
   subtotal: integer("subtotal").notNull(),
   shipping: integer("shipping").notNull(),
   total: integer("total").notNull(),
-
-  // Payment state machine: PENDING → PAID | FAILED
   status: varchar("status", { length: 20 }).notNull().default("PENDING"),
-  paymentProvider: varchar("payment_provider", { length: 20 })
-    .notNull()
-    .default("PHONEPE"),
+  paymentProvider: varchar("payment_provider", { length: 20 }).notNull().default("PHONEPE"),
   phonepeTxnId: text("phonepe_txn_id"),
   providerCode: text("provider_code"),
   demo: boolean("demo").notNull().default(false),
-
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export type Order = typeof orders.$inferSelect;
 export type NewOrder = typeof orders.$inferInsert;
 
-/**
- * Product catalog, editable from /admin.
- * Seeded once from the original static list on first read; from then on
- * this table is the single source of truth for the storefront.
- */
 export const products = pgTable("products", {
   id: uuid("id").defaultRandom().primaryKey(),
   slug: varchar("slug", { length: 160 }).notNull().unique(),
@@ -70,24 +40,61 @@ export const products = pgTable("products", {
   mrp: integer("mrp").notNull(),
   sourcingPrice: integer("sourcing_price").notNull().default(0),
   sourcingRef: text("sourcing_ref").notNull().default(""),
+  meeshoUrl: text("meesho_url").notNull().default(""),
   rating: doublePrecision("rating").notNull().default(4.5),
   reviews: integer("reviews").notNull().default(0),
   image: text("image").notNull().default(""),
   accent: varchar("accent", { length: 20 }).notNull().default("#c8ff00"),
   sizes: jsonb("sizes").notNull().default([]),
+  colors: jsonb("colors").notNull().default([]),
   description: text("description").notNull().default(""),
   highlights: jsonb("highlights").notNull().default([]),
   fabric: text("fabric").notNull().default(""),
   dispatch: text("dispatch").notNull().default("Ships in 24–48 hrs"),
   active: boolean("active").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export type ProductRow = typeof products.$inferSelect;
 export type NewProductRow = typeof products.$inferInsert;
+
+// ── Customer accounts (email + OTP login) ──────────────────────────────
+export const customers = pgTable("customers", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  email: text("email").notNull().unique(),
+  name: text("name").notNull().default(""),
+  phone: varchar("phone", { length: 15 }).notNull().default(""),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  lastLoginAt: timestamp("last_login_at", { withTimezone: true }),
+});
+
+export type Customer = typeof customers.$inferSelect;
+
+// ── OTP tokens ──────────────────────────────────────────────────────────
+export const otpTokens = pgTable("otp_tokens", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  email: text("email").notNull(),
+  otp: varchar("otp", { length: 6 }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  used: boolean("used").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ── Customer support / complaints ───────────────────────────────────────
+export const complaints = pgTable("complaints", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  orderId: uuid("order_id"),
+  customerName: text("customer_name").notNull(),
+  email: text("email").notNull(),
+  phone: varchar("phone", { length: 15 }).notNull(),
+  productName: text("product_name").notNull(),
+  rating: smallint("rating").notNull().default(5),
+  comment: varchar("comment", { length: 120 }).notNull().default(""),
+  location: text("location").notNull().default(""),
+  status: varchar("status", { length: 20 }).notNull().default("OPEN"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type Complaint = typeof complaints.$inferSelect;

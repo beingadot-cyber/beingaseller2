@@ -61,6 +61,7 @@ export function normalizeProductInput(
       highlights,
       fabric: String(body.fabric ?? "").trim(),
       dispatch: String(body.dispatch ?? "Ships in 24–48 hrs").trim(),
+      meeshoUrl: String(body.meeshoUrl ?? "").trim(),
       active: body.active !== false,
     },
   };

@@ -1,24 +1,11 @@
 import { sql } from "drizzle-orm";
 import { db } from "@/db";
 
-/**
- * Creates the tables this app needs if they don't already exist.
- *
- * This project has no terminal access in its normal workflow (files are
- * uploaded via the GitHub web UI), so instead of relying on
- * `drizzle-kit push` being run locally, every DB-touching request makes
- * sure the schema is in place first. CREATE TABLE IF NOT EXISTS is cheap
- * and safe to run repeatedly.
- */
 let ready: Promise<void> | null = null;
 
 export function ensureSchema(): Promise<void> {
   if (!ready) {
-    ready = run().catch((err) => {
-      // Allow a later request to retry if this attempt failed.
-      ready = null;
-      throw err;
-    });
+    ready = run().catch((err) => { ready = null; throw err; });
   }
   return ready;
 }
@@ -61,11 +48,13 @@ async function run() {
       mrp integer NOT NULL,
       sourcing_price integer NOT NULL DEFAULT 0,
       sourcing_ref text NOT NULL DEFAULT '',
+      meesho_url text NOT NULL DEFAULT '',
       rating double precision NOT NULL DEFAULT 4.5,
       reviews integer NOT NULL DEFAULT 0,
       image text NOT NULL DEFAULT '',
       accent varchar(20) NOT NULL DEFAULT '#c8ff00',
       sizes jsonb NOT NULL DEFAULT '[]',
+      colors jsonb NOT NULL DEFAULT '[]',
       description text NOT NULL DEFAULT '',
       highlights jsonb NOT NULL DEFAULT '[]',
       fabric text NOT NULL DEFAULT '',
@@ -74,6 +63,52 @@ async function run() {
       sort_order integer NOT NULL DEFAULT 0,
       created_at timestamptz NOT NULL DEFAULT now(),
       updated_at timestamptz NOT NULL DEFAULT now()
+    );
+  `);
+
+  // Add meesho_url column if upgrading existing DB
+  await db.execute(sql`
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS meesho_url text NOT NULL DEFAULT '';
+  `);
+  await db.execute(sql`
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS colors jsonb NOT NULL DEFAULT '[]';
+  `);
+
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS customers (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      email text NOT NULL UNIQUE,
+      name text NOT NULL DEFAULT '',
+      phone varchar(15) NOT NULL DEFAULT '',
+      created_at timestamptz NOT NULL DEFAULT now(),
+      last_login_at timestamptz
+    );
+  `);
+
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS otp_tokens (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      email text NOT NULL,
+      otp varchar(6) NOT NULL,
+      expires_at timestamptz NOT NULL,
+      used boolean NOT NULL DEFAULT false,
+      created_at timestamptz NOT NULL DEFAULT now()
+    );
+  `);
+
+  await db.execute(sql`
+    CREATE TABLE IF NOT EXISTS complaints (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      order_id uuid,
+      customer_name text NOT NULL,
+      email text NOT NULL,
+      phone varchar(15) NOT NULL,
+      product_name text NOT NULL,
+      rating smallint NOT NULL DEFAULT 5,
+      comment varchar(120) NOT NULL DEFAULT '',
+      location text NOT NULL DEFAULT '',
+      status varchar(20) NOT NULL DEFAULT 'OPEN',
+      created_at timestamptz NOT NULL DEFAULT now()
     );
   `);
 }

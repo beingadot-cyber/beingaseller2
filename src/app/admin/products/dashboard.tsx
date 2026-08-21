@@ -18,6 +18,7 @@ import type { AdminProduct } from "@/db/products-repo";
 const CATEGORIES = ["Tees", "Bottoms", "Sneakers", "Hoodies", "Jackets", "Accessories"];
 
 type FormState = {
+  meeshoUrl?: string;
   id?: string;
   slug: string;
   name: string;
@@ -40,6 +41,7 @@ type FormState = {
 };
 
 const EMPTY_FORM: FormState = {
+  meeshoUrl: "",
   slug: "",
   name: "",
   tagline: "",
@@ -100,6 +102,21 @@ export function AdminDashboard({ initialProducts }: { initialProducts: AdminProd
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [meeshoUrl, setMeeshoUrl] = useState("");
+
+  async function scrapeFromMeesho(url: string) {
+    if (!url || !url.includes("meesho.com")) { setError("Please enter a valid Meesho URL"); return; }
+    setSaving(true); setError("");
+    try {
+      const res = await fetch("/api/admin/meesho-scrape", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url }) });
+      const data = await res.json();
+      if (!data.ok) { setError(data.message); setSaving(false); return; }
+      const p = data.product;
+      setForm((f) => f ? { ...f, name: p.name, slug: p.slug, tagline: p.tagline, description: p.description, image: p.image, price: String(p.price), mrp: String(p.mrp), sourcingPrice: String(p.sourcingPrice), sourcingRef: p.sourcingRef, sizes: p.sizes.join(", "), fabric: p.fabric, category: p.category, rating: String(p.rating), reviews: String(p.reviews), meeshoUrl: p.meeshoUrl } : f);
+      setMeeshoUrl("");
+    } catch { setError("Scrape failed — fill manually."); }
+    finally { setSaving(false); }
+  }
 
   function openNew() {
     setForm({ ...EMPTY_FORM });
@@ -288,7 +305,32 @@ export function AdminDashboard({ initialProducts }: { initialProducts: AdminProd
               </button>
             </div>
 
-            <div className="space-y-3">
+            {/* Meesho Auto-Fill */}
+            {!form.id && (
+              <div className="mb-4 rounded-xl border border-acid/20 bg-acid/5 p-4">
+                <p className="text-xs font-bold uppercase tracking-wider text-acid mb-2">⚡ Auto-fill from Meesho</p>
+                <div className="flex gap-2">
+                  <input
+                    className="input flex-1 text-sm"
+                    placeholder="Paste Meesho product URL..."
+                    value={meeshoUrl}
+                    onChange={(e) => setMeeshoUrl(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && scrapeFromMeesho(meeshoUrl)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => scrapeFromMeesho(meeshoUrl)}
+                    disabled={saving || !meeshoUrl}
+                    className="rounded-lg bg-acid px-3 py-2 text-xs font-bold text-void disabled:opacity-40 flex items-center gap-1"
+                  >
+                    {saving ? <Loader2 size={12} className="animate-spin" /> : "Fill →"}
+                  </button>
+                </div>
+                <p className="text-[10px] text-white/30 mt-2">Automatically fills name, images, price (2×), sizes from Meesho</p>
+              </div>
+            )}
+
+                        <div className="space-y-3">
               <Field label="Name">
                 <input
                   className="input"
