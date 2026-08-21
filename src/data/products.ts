@@ -20,6 +20,8 @@ export type Product = {
   highlights: string[];
   fabric: string;
   dispatch: string;
+  /** Original Meesho listing this was imported from (optional) — internal, never rendered on the storefront */
+  meeshoUrl?: string;
 };
 
 export const FREE_SHIPPING_THRESHOLD = 999;
