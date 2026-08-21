@@ -11,12 +11,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, message: "Unauthorized." }, { status: 401 });
   }
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  // Newer Vercel Blob stores authorize connected projects via OIDC instead
+  // of a BLOB_READ_WRITE_TOKEN env var, so we don't gate on that var being
+  // present — we just attempt the upload and report a clear error if the
+  // store genuinely isn't connected yet.
+  if (!process.env.BLOB_STORE_ID && !process.env.BLOB_READ_WRITE_TOKEN) {
     return NextResponse.json(
       {
         ok: false,
         message:
-          "Image uploads aren't set up yet. In Vercel, go to Storage → Create Database → Blob, then redeploy.",
+          "Image uploads aren't set up yet. In Vercel, go to Storage → Create Database → Blob, connect it to this project, then redeploy.",
       },
       { status: 503 }
     );
