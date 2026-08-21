@@ -9,6 +9,8 @@ export const metadata: Metadata = {
     "Six hand-picked streetwear pieces rated 4.5+. Prepaid only, no COD, no returns — ships across India in 24–48 hrs.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function ProductsPage() {
   const products = await listActiveProducts();
   return (
