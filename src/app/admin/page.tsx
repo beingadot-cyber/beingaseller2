@@ -7,7 +7,7 @@ export default async function AdminPage() {
   const store = await cookies();
   const value = store.get(sessionCookieName())?.value;
   if (isValidSession(value)) {
-    redirect("/admin/products");
+    redirect("/admin/dashboard");
   }
 
   return (

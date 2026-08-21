@@ -26,7 +26,7 @@ export function AdminLoginForm() {
         setBusy(false);
         return;
       }
-      router.push("/admin/products");
+      router.push("/admin/dashboard");
       router.refresh();
     } catch {
       setError("Something went wrong. Try again.");

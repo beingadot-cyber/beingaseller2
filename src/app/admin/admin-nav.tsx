@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 
 const TABS = [
+  { href: "/admin/dashboard", label: "Dashboard" },
   { href: "/admin/products", label: "Products" },
   { href: "/admin/orders", label: "Orders" },
   { href: "/admin/complaints", label: "Complaints" },
@@ -21,7 +22,7 @@ export function AdminNav() {
   }
 
   return (
-    <div className="mx-auto flex max-w-5xl items-center justify-between px-4 pt-6 sm:px-6">
+    <div className="mx-auto flex max-w-5xl items-center justify-between px-4 pb-4 pt-24 sm:px-6">
       <div className="flex gap-1 rounded-lg border border-line bg-ink p-1">
         {TABS.map((tab) => {
           const active = pathname?.startsWith(tab.href);
