@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { orders } from "@/db/schema";
-import { getProduct, shippingFor } from "@/data/products";
+import { shippingFor } from "@/data/products";
+import { getProductBySlug } from "@/db/products-repo";
+import { ensureSchema } from "@/db/bootstrap";
 
 export const runtime = "nodejs";
 
@@ -59,6 +61,8 @@ export async function POST(req: Request) {
   if (!Array.isArray(items) || items.length === 0)
     return bad("Your bag is empty.");
 
+  await ensureSchema();
+
   const lineItems: {
     slug: string;
     name: string;
@@ -69,7 +73,7 @@ export async function POST(req: Request) {
   }[] = [];
 
   for (const item of items) {
-    const product = getProduct(item.slug);
+    const product = await getProductBySlug(item.slug);
     if (!product) return bad(`Unknown product: ${item.slug}`);
     if (!product.sizes.includes(item.size))
       return bad(`Invalid size "${item.size}" for ${product.name}.`);

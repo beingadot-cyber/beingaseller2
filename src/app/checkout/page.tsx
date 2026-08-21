@@ -20,9 +20,9 @@ import {
 import { useCart } from "@/components/cart-provider";
 import {
   formatINR,
-  getProduct,
   shippingFor,
 } from "@/data/products";
+import { useProducts } from "@/context/products-context";
 
 const INDIAN_STATES = [
   "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh",
@@ -60,6 +60,7 @@ const EMPTY: FormState = {
 
 export default function CheckoutPage() {
   const { items, hydrated, subtotal } = useCart();
+  const { getProduct } = useProducts();
   const [form, setForm] = useState<FormState>(EMPTY);
   const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({});
   const [phase, setPhase] = useState<"form" | "processing">("form");

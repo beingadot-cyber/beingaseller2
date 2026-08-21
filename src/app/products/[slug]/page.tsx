@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronRight } from "lucide-react";
-import { getProduct, products } from "@/data/products";
+import { getProductBySlug, listActiveProducts } from "@/db/products-repo";
 import { ProductView } from "./product-view";
 import { ProductCard } from "@/components/product-card";
 import { TickerStrip } from "@/components/marquee";
 
-export function generateStaticParams() {
-  return products.map((p) => ({ slug: p.slug }));
-}
+// Catalog is admin-editable at runtime, so render these on demand
+// rather than freezing a static list at build time.
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -17,7 +17,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const product = getProduct(slug);
+  const product = await getProductBySlug(slug);
   if (!product) return { title: "Product not found" };
   return {
     title: product.name,
@@ -31,12 +31,13 @@ export default async function ProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = getProduct(slug);
+  const product = await getProductBySlug(slug);
   if (!product) notFound();
 
-  const related = products
+  const allProducts = await listActiveProducts();
+  const related = allProducts
     .filter((p) => p.slug !== product.slug && p.category === product.category)
-    .concat(products.filter((p) => p.slug !== product.slug && p.category !== product.category))
+    .concat(allProducts.filter((p) => p.slug !== product.slug && p.category !== product.category))
     .slice(0, 3);
 
   return (

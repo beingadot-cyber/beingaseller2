@@ -2,9 +2,11 @@ import type { Metadata, Viewport } from "next";
 import { Syne, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/components/cart-provider";
+import { ProductsProvider } from "@/context/products-context";
 import { Navbar } from "@/components/navbar";
 import { CartDrawer } from "@/components/cart-drawer";
 import { Footer } from "@/components/footer";
+import { listActiveProducts } from "@/db/products-repo";
 
 const syne = Syne({
   subsets: ["latin"],
@@ -49,18 +51,24 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  // Fetched once per request so the cart/checkout have product data
+  // available immediately instead of waiting on a client-side fetch.
+  const initialProducts = await listActiveProducts().catch(() => []);
+
   return (
     <html lang="en" className={`${syne.variable} ${grotesk.variable}`}>
       <body className="noise min-h-screen bg-void font-sans text-white antialiased">
-        <CartProvider>
-          <Navbar />
-          <CartDrawer />
-          <main>{children}</main>
-          <Footer />
-        </CartProvider>
+        <ProductsProvider initialProducts={initialProducts}>
+          <CartProvider>
+            <Navbar />
+            <CartDrawer />
+            <main>{children}</main>
+            <Footer />
+          </CartProvider>
+        </ProductsProvider>
       </body>
     </html>
   );

@@ -10,7 +10,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { getProduct } from "@/data/products";
+import { useProducts } from "@/context/products-context";
 
 export type CartItem = {
   slug: string;
@@ -36,6 +36,7 @@ const CartContext = createContext<CartContextValue | null>(null);
 const STORAGE_KEY = "beingaseller-cart-v1";
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const { getProduct } = useProducts();
   const [items, setItems] = useState<CartItem[]>([]);
   const [open, setOpen] = useState(false);
   const [hydrated, setHydrated] = useState(false);
@@ -115,7 +116,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       subtotal += product.price * item.qty;
     }
     return { count, subtotal };
-  }, [items]);
+  }, [items, getProduct]);
 
   const value = useMemo(
     () => ({

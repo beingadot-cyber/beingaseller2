@@ -17,13 +17,14 @@ import {
 import { useCart } from "@/components/cart-provider";
 import {
   formatINR,
-  getProduct,
   shippingFor,
   FREE_SHIPPING_THRESHOLD,
 } from "@/data/products";
+import { useProducts } from "@/context/products-context";
 
 export default function CartPage() {
   const { items, hydrated, setQty, remove, subtotal, clear } = useCart();
+  const { getProduct } = useProducts();
 
   if (!hydrated) {
     return (

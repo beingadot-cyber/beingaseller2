@@ -6,10 +6,12 @@ import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, Minus, Plus, ShoppingBag, Trash2, X } from "lucide-react";
 import { useCart } from "./cart-provider";
-import { formatINR, getProduct, FREE_SHIPPING_THRESHOLD } from "@/data/products";
+import { formatINR, FREE_SHIPPING_THRESHOLD } from "@/data/products";
+import { useProducts } from "@/context/products-context";
 
 export function CartDrawer() {
   const { items, open, setOpen, setQty, remove, subtotal } = useCart();
+  const { getProduct } = useProducts();
   const router = useRouter();
 
   const progress = Math.min(subtotal / FREE_SHIPPING_THRESHOLD, 1);

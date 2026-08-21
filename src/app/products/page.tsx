@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { ProductsBrowser } from "./products-browser";
 import { MarqueeRow } from "@/components/marquee";
-import { products } from "@/data/products";
+import { listActiveProducts } from "@/db/products-repo";
 
 export const metadata: Metadata = {
   title: "Shop the Drop",
@@ -9,7 +9,8 @@ export const metadata: Metadata = {
     "Six hand-picked streetwear pieces rated 4.5+. Prepaid only, no COD, no returns — ships across India in 24–48 hrs.",
 };
 
-export default function ProductsPage() {
+export default async function ProductsPage() {
+  const products = await listActiveProducts();
   return (
     <div className="relative overflow-hidden pt-16">
       {/* Backdrop */}

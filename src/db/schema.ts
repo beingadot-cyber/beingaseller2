@@ -7,6 +7,7 @@ import {
   jsonb,
   boolean,
   timestamp,
+  doublePrecision,
 } from "drizzle-orm/pg-core";
 
 /**
@@ -53,3 +54,40 @@ export const orders = pgTable("orders", {
 
 export type Order = typeof orders.$inferSelect;
 export type NewOrder = typeof orders.$inferInsert;
+
+/**
+ * Product catalog, editable from /admin.
+ * Seeded once from the original static list on first read; from then on
+ * this table is the single source of truth for the storefront.
+ */
+export const products = pgTable("products", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  slug: varchar("slug", { length: 160 }).notNull().unique(),
+  name: text("name").notNull(),
+  tagline: text("tagline").notNull().default(""),
+  category: varchar("category", { length: 40 }).notNull(),
+  price: integer("price").notNull(),
+  mrp: integer("mrp").notNull(),
+  sourcingPrice: integer("sourcing_price").notNull().default(0),
+  sourcingRef: text("sourcing_ref").notNull().default(""),
+  rating: doublePrecision("rating").notNull().default(4.5),
+  reviews: integer("reviews").notNull().default(0),
+  image: text("image").notNull().default(""),
+  accent: varchar("accent", { length: 20 }).notNull().default("#c8ff00"),
+  sizes: jsonb("sizes").notNull().default([]),
+  description: text("description").notNull().default(""),
+  highlights: jsonb("highlights").notNull().default([]),
+  fabric: text("fabric").notNull().default(""),
+  dispatch: text("dispatch").notNull().default("Ships in 24–48 hrs"),
+  active: boolean("active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export type ProductRow = typeof products.$inferSelect;
+export type NewProductRow = typeof products.$inferInsert;

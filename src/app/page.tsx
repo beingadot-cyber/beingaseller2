@@ -14,7 +14,7 @@ import { TickerStrip } from "@/components/marquee";
 import { ProductCard } from "@/components/product-card";
 import { RatingStars } from "@/components/rating-stars";
 import { Reveal } from "@/components/reveal";
-import { products } from "@/data/products";
+import { listActiveProducts } from "@/db/products-repo";
 
 /* ─────────────────────────── Section heading ─────────────────────────── */
 function SectionHeading({
@@ -61,7 +61,8 @@ function SectionHeading({
 }
 
 /* ─────────────────────────── Page ─────────────────────────── */
-export default function HomePage() {
+export default async function HomePage() {
+  const products = await listActiveProducts();
   return (
     <>
       <HomeHero />
