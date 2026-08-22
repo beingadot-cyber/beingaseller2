@@ -29,7 +29,7 @@ export const seedProducts: Product[] = [
       "Bio-washed & pre-shrunk — zero fade drama",
     ],
     fabric: "100% combed cotton · 240 GSM · bio-washed",
-    dispatch: "Ships in 24–48 hrs",
+    dispatch: "Ships in 7–10 days",
   },
   {
     slug: "street-utility-cargo",
@@ -54,7 +54,7 @@ export const seedProducts: Product[] = [
       "Y2K baggy silhouette",
     ],
     fabric: "Poly-ripstop · quick-dry · wrinkle resistant",
-    dispatch: "Ships in 24–48 hrs",
+    dispatch: "Ships in 7–10 days",
   },
   {
     slug: "cloud-walk-sneakers",
@@ -79,7 +79,7 @@ export const seedProducts: Product[] = [
       "Cushioned collar for all-day wear",
     ],
     fabric: "Engineered mesh + PU overlays · EVA sole",
-    dispatch: "Ships in 24–48 hrs",
+    dispatch: "Ships in 7–10 days",
   },
   {
     slug: "neon-drip-hoodie",
@@ -104,7 +104,7 @@ export const seedProducts: Product[] = [
       "Ribbed cuffs & hem — holds shape",
     ],
     fabric: "Cotton-rich fleece · 400 GSM · brushed inside",
-    dispatch: "Ships in 24–48 hrs",
+    dispatch: "Ships in 7–10 days",
   },
   {
     slug: "vintage-wash-denim",
@@ -129,7 +129,7 @@ export const seedProducts: Product[] = [
       "Gets better with every wear",
     ],
     fabric: "100% cotton denim · 12oz · enzyme washed",
-    dispatch: "Ships in 24–48 hrs",
+    dispatch: "Ships in 7–10 days",
   },
   {
     slug: "urban-sling-bag",
@@ -154,6 +154,6 @@ export const seedProducts: Product[] = [
       "Adjustable strap — chest or back carry",
     ],
     fabric: "Ballistic nylon · YKK-style zips · padded back",
-    dispatch: "Ships in 24–48 hrs",
+    dispatch: "Ships in 7–10 days",
   },
 ];

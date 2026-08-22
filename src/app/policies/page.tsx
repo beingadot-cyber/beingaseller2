@@ -41,7 +41,7 @@ const SECTIONS: {
     icon: Truck,
     title: "Shipping & delivery",
     points: [
-      "Orders are dispatched within 24–48 hours of payment confirmation, Monday to Saturday.",
+      "Orders are dispatched within 24–48 hours of payment confirmation, Monday to Saturday, and typically delivered across India within 7–10 days.",
       "Delivery takes 3–7 working days depending on your pincode. Metro cities are usually faster.",
       "Shipping is a flat ₹49 per order — and completely free on orders of ₹999 or above.",
       "Every shipment includes live tracking. Your tracking link is shared by SMS (and email if provided) the moment your package leaves the warehouse.",

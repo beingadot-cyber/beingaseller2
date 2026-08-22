@@ -42,6 +42,10 @@ export function normalizeProductInput(
         .map((s) => s.trim())
         .filter(Boolean);
 
+  const images = Array.isArray(body.images)
+    ? (body.images as unknown[]).map(String).map((s) => s.trim()).filter(Boolean)
+    : [];
+
   return {
     input: {
       slug,
@@ -52,15 +56,18 @@ export function normalizeProductInput(
       mrp: Math.round(mrp),
       sourcingPrice: Math.round(Number(body.sourcingPrice) || 0),
       sourcingRef: String(body.sourcingRef ?? "").trim(),
+      productId: String(body.productId ?? "").trim(),
       rating: Number(body.rating) || 4.5,
       reviews: Math.round(Number(body.reviews)) || 0,
       image: String(body.image ?? "").trim(),
+      images: images.length ? images : (String(body.image ?? "").trim() ? [String(body.image).trim()] : []),
+      video: String(body.video ?? "").trim(),
       accent: String(body.accent ?? "#c8ff00").trim() || "#c8ff00",
       sizes: sizes.length ? sizes : ["One Size"],
       description: String(body.description ?? "").trim(),
       highlights,
       fabric: String(body.fabric ?? "").trim(),
-      dispatch: String(body.dispatch ?? "Ships in 24–48 hrs").trim(),
+      dispatch: String(body.dispatch ?? "Ships in 7–10 days").trim(),
       meeshoUrl: String(body.meeshoUrl ?? "").trim(),
       active: body.active !== false,
     },

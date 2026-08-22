@@ -28,9 +28,12 @@ type FormState = {
   mrp: string;
   sourcingPrice: string;
   sourcingRef: string;
+  productId: string;
   rating: string;
   reviews: string;
   image: string;
+  images: string[];
+  video: string;
   accent: string;
   sizes: string;
   description: string;
@@ -50,15 +53,18 @@ const EMPTY_FORM: FormState = {
   mrp: "",
   sourcingPrice: "",
   sourcingRef: "",
+  productId: "",
   rating: "4.5",
   reviews: "0",
   image: "",
+  images: [],
+  video: "",
   accent: "#c8ff00",
   sizes: "S, M, L, XL, XXL",
   description: "",
   highlights: "",
   fabric: "",
-  dispatch: "Ships in 24–48 hrs",
+  dispatch: "Ships in 7–10 days",
   active: true,
 };
 
@@ -73,9 +79,12 @@ function productToForm(p: AdminProduct): FormState {
     mrp: String(p.mrp),
     sourcingPrice: String(p.sourcingPrice ?? ""),
     sourcingRef: p.sourcingRef ?? "",
+    productId: p.productId ?? "",
     rating: String(p.rating),
     reviews: String(p.reviews),
     image: p.image,
+    images: p.images && p.images.length ? p.images : p.image ? [p.image] : [],
+    video: p.video ?? "",
     accent: p.accent,
     sizes: p.sizes.join(", "),
     description: p.description,
@@ -100,6 +109,8 @@ export function AdminDashboard({ initialProducts }: { initialProducts: AdminProd
   const [form, setForm] = useState<FormState | null>(null);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [pasteUrl, setPasteUrl] = useState("");
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [meeshoUrl, setMeeshoUrl] = useState("");
@@ -112,7 +123,7 @@ export function AdminDashboard({ initialProducts }: { initialProducts: AdminProd
       const data = await res.json();
       if (!data.ok) { setError(data.message); setSaving(false); return; }
       const p = data.product;
-      setForm((f) => f ? { ...f, name: p.name, slug: p.slug, tagline: p.tagline, description: p.description, image: p.image, price: String(p.price), mrp: String(p.mrp), sourcingPrice: String(p.sourcingPrice), sourcingRef: p.sourcingRef, sizes: p.sizes.join(", "), fabric: p.fabric, category: p.category, rating: String(p.rating), reviews: String(p.reviews), meeshoUrl: p.meeshoUrl } : f);
+      setForm((f) => f ? { ...f, name: p.name, slug: p.slug, tagline: p.tagline, description: p.description, image: p.image, images: p.image ? [p.image] : f.images, price: String(p.price), mrp: String(p.mrp), sourcingPrice: String(p.sourcingPrice), sourcingRef: p.sourcingRef, sizes: p.sizes.join(", "), fabric: p.fabric, category: p.category, rating: String(p.rating), reviews: String(p.reviews), meeshoUrl: p.meeshoUrl } : f);
       setMeeshoUrl("");
     } catch { setError("Scrape failed — fill manually."); }
     finally { setSaving(false); }
@@ -121,16 +132,19 @@ export function AdminDashboard({ initialProducts }: { initialProducts: AdminProd
   function openNew() {
     setForm({ ...EMPTY_FORM });
     setError("");
+    setPasteUrl("");
   }
 
   function openEdit(p: AdminProduct) {
     setForm(productToForm(p));
     setError("");
+    setPasteUrl("");
   }
 
   function closeForm() {
     setForm(null);
     setError("");
+    setPasteUrl("");
   }
 
   async function logout() {
@@ -139,25 +153,60 @@ export function AdminDashboard({ initialProducts }: { initialProducts: AdminProd
     router.refresh();
   }
 
-  async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleGalleryUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (!files.length || !form) return;
+    setUploading(true);
+    setError("");
+    try {
+      const uploaded: string[] = [];
+      for (const file of files) {
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+        const data = await res.json();
+        if (data.ok) uploaded.push(data.url);
+        else setError(data.message || "One or more images failed to upload.");
+      }
+      setForm((f) => {
+        if (!f) return f;
+        const images = [...f.images, ...uploaded];
+        return { ...f, images, image: f.image || images[0] || "" };
+      });
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  }
+
+  function removeGalleryImage(url: string) {
+    setForm((f) => {
+      if (!f) return f;
+      const images = f.images.filter((u) => u !== url);
+      return { ...f, images, image: f.image === url ? images[0] ?? "" : f.image };
+    });
+  }
+
+  function setCoverImage(url: string) {
+    setForm((f) => (f ? { ...f, image: url } : f));
+  }
+
+  async function handleVideoUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !form) return;
-    setUploading(true);
+    setUploadingVideo(true);
     setError("");
     try {
       const fd = new FormData();
       fd.append("file", file);
       const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
       const data = await res.json();
-      if (!data.ok) {
-        setError(data.message || "Upload failed.");
-      } else {
-        setForm((f) => (f ? { ...f, image: data.url } : f));
-      }
+      if (!data.ok) setError(data.message || "Video upload failed.");
+      else setForm((f) => (f ? { ...f, video: data.url } : f));
     } catch {
-      setError("Upload failed. Please try again.");
+      setError("Video upload failed. Please try again.");
     } finally {
-      setUploading(false);
+      setUploadingVideo(false);
       e.target.value = "";
     }
   }
@@ -175,9 +224,12 @@ export function AdminDashboard({ initialProducts }: { initialProducts: AdminProd
       mrp: Number(form.mrp),
       sourcingPrice: Number(form.sourcingPrice) || 0,
       sourcingRef: form.sourcingRef,
+      productId: form.productId,
       rating: Number(form.rating) || 4.5,
       reviews: Number(form.reviews) || 0,
       image: form.image,
+      images: form.images,
+      video: form.video,
       accent: form.accent,
       sizes: form.sizes,
       description: form.description,
@@ -392,39 +444,97 @@ export function AdminDashboard({ initialProducts }: { initialProducts: AdminProd
                 </Field>
               </div>
 
-              <Field label="Product image">
-                <div className="flex items-center gap-3">
-                  {form.image ? (
-                    <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-void">
-                      <Image
-                        src={form.image}
-                        alt=""
-                        fill
-                        className="object-cover"
-                        unoptimized
-                      />
+              <Field label="Product ID (SKU, optional — for your own tracking, never shown to customers)">
+                <input
+                  className="input"
+                  placeholder="e.g. TEE-001"
+                  value={form.productId}
+                  onChange={(e) => setForm((f) => (f ? { ...f, productId: e.target.value } : f))}
+                />
+              </Field>
+
+              <Field label="Photos">
+                <div className="flex flex-wrap gap-2">
+                  {form.images.map((url) => (
+                    <div
+                      key={url}
+                      className={`group relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border-2 bg-void ${
+                        form.image === url ? "border-acid" : "border-transparent"
+                      }`}
+                    >
+                      <Image src={url} alt="" fill className="object-cover" unoptimized />
+                      <button
+                        type="button"
+                        onClick={() => setCoverImage(url)}
+                        title="Set as cover photo"
+                        className="absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition group-hover:bg-black/40 group-hover:opacity-100"
+                      >
+                        {form.image !== url && <span className="text-[10px] font-medium text-white">Set cover</span>}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeGalleryImage(url)}
+                        className="absolute right-0.5 top-0.5 rounded-full bg-black/70 p-0.5 text-white/80 hover:text-red-400"
+                      >
+                        <X size={11} />
+                      </button>
                     </div>
-                  ) : null}
-                  <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-white/70 hover:text-white">
-                    {uploading ? (
-                      <Loader2 size={15} className="animate-spin" />
-                    ) : (
-                      <Upload size={15} />
-                    )}
-                    {uploading ? "Uploading…" : "Upload image"}
+                  ))}
+                  <label className="flex h-16 w-16 shrink-0 cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-line text-white/50 hover:text-white">
+                    {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                    <span className="text-[10px]">{uploading ? "…" : "Add"}</span>
                     <input
                       type="file"
                       accept="image/*"
+                      multiple
                       className="hidden"
-                      onChange={handleUpload}
+                      onChange={handleGalleryUpload}
                     />
                   </label>
                 </div>
+                <p className="mt-1 text-[10px] text-white/30">
+                  First photo (or the one marked) is the cover shown in listings. The rest appear as a gallery on the product page.
+                </p>
                 <input
                   className="input mt-2"
-                  placeholder="or paste an image URL"
-                  value={form.image}
-                  onChange={(e) => setForm((f) => (f ? { ...f, image: e.target.value } : f))}
+                  placeholder="or paste an image URL and press Enter"
+                  value={pasteUrl}
+                  onChange={(e) => setPasteUrl(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter") return;
+                    const url = pasteUrl.trim();
+                    if (!url) return;
+                    setForm((f) => (f ? { ...f, images: [...f.images, url], image: f.image || url } : f));
+                    setPasteUrl("");
+                  }}
+                />
+              </Field>
+
+              <Field label="Product video (optional)">
+                <div className="flex items-center gap-3">
+                  {form.video && (
+                    <video src={form.video} className="h-14 w-14 rounded-lg object-cover" muted />
+                  )}
+                  <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-line px-3 py-2 text-sm text-white/70 hover:text-white">
+                    {uploadingVideo ? <Loader2 size={15} className="animate-spin" /> : <Upload size={15} />}
+                    {uploadingVideo ? "Uploading…" : "Upload video"}
+                    <input type="file" accept="video/*" className="hidden" onChange={handleVideoUpload} />
+                  </label>
+                  {form.video && (
+                    <button
+                      type="button"
+                      onClick={() => setForm((f) => (f ? { ...f, video: "" } : f))}
+                      className="text-xs text-white/40 hover:text-red-400"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+                <input
+                  className="input mt-2"
+                  placeholder="or paste a video URL"
+                  value={form.video}
+                  onChange={(e) => setForm((f) => (f ? { ...f, video: e.target.value } : f))}
                 />
               </Field>
 

@@ -5,7 +5,15 @@ import { ChevronDown, ChevronUp, Loader2, Package, Trash2 } from "lucide-react";
 import { formatINR } from "@/data/products";
 import type { Order } from "@/db/schema";
 
-type OrderItem = { slug: string; name: string; size: string; qty: number; price: number; image: string };
+type OrderItem = {
+  slug: string;
+  name: string;
+  size: string;
+  qty: number;
+  price: number;
+  image: string;
+  productId?: string;
+};
 
 const STATUS_OPTIONS = ["PENDING", "PAID", "FAILED", "SHIPPED", "DELIVERED", "CANCELLED"] as const;
 
@@ -117,8 +125,8 @@ export function OrdersDashboard({ initialOrders }: { initialOrders: Order[] }) {
                       </span>
                     </div>
                     <p className="truncate text-xs text-white/50">
-                      {order.phone} · {items.length} item{items.length !== 1 ? "s" : ""} ·{" "}
-                      {fmtDate(order.createdAt)}
+                      #{order.id.slice(0, 8).toUpperCase()} · {order.phone} · {items.length} item
+                      {items.length !== 1 ? "s" : ""} · {fmtDate(order.createdAt)}
                     </p>
                   </div>
                   <div className="flex shrink-0 items-center gap-3">
@@ -129,6 +137,11 @@ export function OrdersDashboard({ initialOrders }: { initialOrders: Order[] }) {
 
                 {isOpen && (
                   <div className="space-y-4 border-t border-line p-4">
+                    <div>
+                      <p className="mb-1 text-xs font-medium text-white/40">Order ID</p>
+                      <p className="select-all font-mono text-xs text-white/70">{order.id}</p>
+                    </div>
+
                     <div>
                       <p className="mb-1 text-xs font-medium text-white/40">Shipping to</p>
                       <p className="text-sm text-white/80">
@@ -150,6 +163,11 @@ export function OrdersDashboard({ initialOrders }: { initialOrders: Order[] }) {
                           <div key={i} className="flex items-center justify-between text-sm">
                             <span className="text-white/80">
                               {it.name} · {it.size} × {it.qty}
+                              {it.productId && (
+                                <span className="ml-2 rounded border border-line px-1.5 py-0.5 text-[10px] font-mono text-white/40">
+                                  PRODUCT ID: {it.productId}
+                                </span>
+                              )}
                             </span>
                             <span className="text-white/60">{formatINR(it.price * it.qty)}</span>
                           </div>

@@ -117,8 +117,8 @@ export function HomeHero() {
               },
               {
                 icon: Truck,
-                title: "24–48 hr",
-                sub: "dispatch, always",
+                title: "7–10 day",
+                sub: "delivery, always",
               },
               {
                 icon: ShieldCheck,

@@ -11,6 +11,7 @@ import {
   ChevronDown,
   Minus,
   Package,
+  Play,
   Plus,
   RotateCcw,
   ShieldCheck,
@@ -60,6 +61,11 @@ export function ProductView({ product }: { product: Product }) {
   const [qty, setQtyLocal] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [justAdded, setJustAdded] = useState(false);
+  const gallery = product.images && product.images.length > 0 ? product.images : [product.image];
+  const [activeMedia, setActiveMedia] = useState<{ type: "image" | "video"; index: number }>({
+    type: "image",
+    index: 0,
+  });
 
   const savings = product.mrp - product.price;
   const offPct = Math.round((savings / product.mrp) * 100);
@@ -113,14 +119,27 @@ export function ProductView({ product }: { product: Product }) {
                 transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
                 className="absolute inset-0"
               >
-                <Image
-                  src={product.image}
-                  alt={product.name}
-                  fill
-                  priority
-                  sizes="(max-width: 1024px) 100vw, 50vw"
-                  className="object-cover transition-transform duration-[1.4s] ease-out group-hover:scale-[1.07]"
-                />
+                {activeMedia.type === "video" && product.video ? (
+                  // eslint-disable-next-line jsx-a11y/media-has-caption
+                  <video
+                    src={product.video}
+                    className="h-full w-full object-cover"
+                    controls
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                  />
+                ) : (
+                  <Image
+                    src={gallery[activeMedia.index] ?? product.image}
+                    alt={product.name}
+                    fill
+                    priority
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    className="object-cover transition-transform duration-[1.4s] ease-out group-hover:scale-[1.07]"
+                  />
+                )}
               </motion.div>
 
               <div className="absolute left-4 top-4 flex flex-col gap-2">
@@ -132,6 +151,36 @@ export function ProductView({ product }: { product: Product }) {
                 </span>
               </div>
             </div>
+
+            {(gallery.length > 1 || product.video) && (
+              <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+                {gallery.map((img, i) => (
+                  <button
+                    key={img + i}
+                    onClick={() => setActiveMedia({ type: "image", index: i })}
+                    className={`relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border-2 transition ${
+                      activeMedia.type === "image" && activeMedia.index === i
+                        ? "border-acid"
+                        : "border-line opacity-70 hover:opacity-100"
+                    }`}
+                  >
+                    <Image src={img} alt="" fill className="object-cover" sizes="64px" />
+                  </button>
+                ))}
+                {product.video && (
+                  <button
+                    onClick={() => setActiveMedia({ type: "video", index: 0 })}
+                    className={`relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2 bg-panel-2 transition ${
+                      activeMedia.type === "video"
+                        ? "border-acid"
+                        : "border-line opacity-70 hover:opacity-100"
+                    }`}
+                  >
+                    <Play size={20} className="text-acid" />
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Under-image strip */}
             <div className="mt-4 grid grid-cols-3 gap-3">
@@ -316,7 +365,7 @@ export function ProductView({ product }: { product: Product }) {
               <span className="flex items-start gap-2">
                 <Package size={15} className="mt-0.5 shrink-0 text-acid" />
                 <span>
-                  {product.dispatch}. Delivered across India in 3–7 working days.
+                  {product.dispatch}. Delivered across India in 7–10 working days.
                   {freeShip
                     ? " This item ships free."
                     : ` Flat ₹49 shipping — free on orders above ${formatINR(FREE_SHIPPING_THRESHOLD)}.`}{" "}

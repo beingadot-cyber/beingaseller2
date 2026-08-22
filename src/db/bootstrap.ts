@@ -48,17 +48,20 @@ async function run() {
       mrp integer NOT NULL,
       sourcing_price integer NOT NULL DEFAULT 0,
       sourcing_ref text NOT NULL DEFAULT '',
+      product_id text NOT NULL DEFAULT '',
       meesho_url text NOT NULL DEFAULT '',
       rating double precision NOT NULL DEFAULT 4.5,
       reviews integer NOT NULL DEFAULT 0,
       image text NOT NULL DEFAULT '',
+      images jsonb NOT NULL DEFAULT '[]',
+      video text NOT NULL DEFAULT '',
       accent varchar(20) NOT NULL DEFAULT '#c8ff00',
       sizes jsonb NOT NULL DEFAULT '[]',
       colors jsonb NOT NULL DEFAULT '[]',
       description text NOT NULL DEFAULT '',
       highlights jsonb NOT NULL DEFAULT '[]',
       fabric text NOT NULL DEFAULT '',
-      dispatch text NOT NULL DEFAULT 'Ships in 24–48 hrs',
+      dispatch text NOT NULL DEFAULT 'Ships in 7–10 days',
       active boolean NOT NULL DEFAULT true,
       sort_order integer NOT NULL DEFAULT 0,
       created_at timestamptz NOT NULL DEFAULT now(),
@@ -72,6 +75,28 @@ async function run() {
   `);
   await db.execute(sql`
     ALTER TABLE products ADD COLUMN IF NOT EXISTS colors jsonb NOT NULL DEFAULT '[]';
+  `);
+  await db.execute(sql`
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS product_id text NOT NULL DEFAULT '';
+  `);
+  await db.execute(sql`
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS images jsonb NOT NULL DEFAULT '[]';
+  `);
+  await db.execute(sql`
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS video text NOT NULL DEFAULT '';
+  `);
+
+  // One-time cleanup: products seeded before the delivery estimate was
+  // extended still say "24–48 hrs" — bring them in line with the current
+  // default without touching any dispatch text an admin customised.
+  await db.execute(sql`
+    UPDATE products SET dispatch = 'Ships in 7–10 days' WHERE dispatch = 'Ships in 24–48 hrs';
+  `);
+  // Backfill the new gallery array from the existing single cover image,
+  // so older products still show at least one photo in the gallery.
+  await db.execute(sql`
+    UPDATE products SET images = jsonb_build_array(image)
+    WHERE (images IS NULL OR images = '[]'::jsonb) AND image <> '';
   `);
 
   // Coupon support on orders (upgrading existing DB)

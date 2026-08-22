@@ -21,7 +21,7 @@ export async function generateMetadata({
   if (!product) return { title: "Product not found" };
   return {
     title: product.name,
-    description: `${product.tagline}. Rated ${product.rating}★ by ${product.reviews} buyers. Prepaid only · ships in 24–48 hrs.`,
+    description: `${product.tagline}. Rated ${product.rating}★ by ${product.reviews} buyers. Prepaid only · delivered in 7–10 days.`,
   };
 }
 

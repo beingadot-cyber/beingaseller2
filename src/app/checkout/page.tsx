@@ -71,10 +71,11 @@ export default function CheckoutPage() {
   const [couponInput, setCouponInput] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
   const [discount, setDiscount] = useState(0);
+  const [couponShipping, setCouponShipping] = useState<number | null>(null);
   const [couponError, setCouponError] = useState("");
   const [couponLoading, setCouponLoading] = useState(false);
 
-  const shipping = shippingFor(subtotal);
+  const shipping = couponShipping ?? shippingFor(subtotal);
   const total = Math.max(subtotal + shipping - discount, 0);
 
   async function applyCoupon() {
@@ -85,17 +86,26 @@ export default function CheckoutPage() {
       const res = await fetch("/api/coupons/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: couponInput.trim(), subtotal }),
+        body: JSON.stringify({
+          code: couponInput.trim(),
+          subtotal,
+          items: items.map((it) => {
+            const p = getProduct(it.slug);
+            return { price: p?.price ?? 0, qty: it.qty };
+          }),
+        }),
       });
       const data = await res.json();
       if (!data.ok) {
         setCouponError(data.message || "Invalid coupon code.");
         setAppliedCoupon(null);
         setDiscount(0);
+        setCouponShipping(null);
         return;
       }
       setAppliedCoupon(data.code);
       setDiscount(data.discount);
+      setCouponShipping(data.shipping);
     } catch {
       setCouponError("Could not apply coupon. Try again.");
     } finally {
@@ -106,6 +116,7 @@ export default function CheckoutPage() {
   function removeCoupon() {
     setAppliedCoupon(null);
     setDiscount(0);
+    setCouponShipping(null);
     setCouponInput("");
     setCouponError("");
   }

@@ -20,9 +20,12 @@ function rowToProduct(row: ProductRow): AdminProduct {
     mrp: row.mrp,
     sourcingPrice: row.sourcingPrice,
     sourcingRef: row.sourcingRef,
+    productId: row.productId ?? "",
     rating: row.rating,
     reviews: row.reviews,
     image: row.image,
+    images: (row.images as string[])?.length ? (row.images as string[]) : row.image ? [row.image] : [],
+    video: row.video ?? "",
     accent: row.accent,
     sizes: (row.sizes as string[]) ?? [],
     description: row.description,
@@ -117,9 +120,12 @@ export type ProductInput = {
   mrp: number;
   sourcingPrice: number;
   sourcingRef: string;
+  productId: string;
   rating: number;
   reviews: number;
   image: string;
+  images: string[];
+  video: string;
   accent: string;
   sizes: string[];
   description: string;

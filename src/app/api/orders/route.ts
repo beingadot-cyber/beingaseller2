@@ -4,7 +4,7 @@ import { orders } from "@/db/schema";
 import { shippingFor } from "@/data/products";
 import { getProductBySlug } from "@/db/products-repo";
 import { ensureSchema } from "@/db/bootstrap";
-import { findCoupon, computeDiscount } from "@/lib/coupons";
+import { findCoupon, computeDiscount, shippingOverride, minUnitsRequired } from "@/lib/coupons";
 
 export const runtime = "nodejs";
 
@@ -71,6 +71,7 @@ export async function POST(req: Request) {
     qty: number;
     price: number;
     image: string;
+    productId: string;
   }[] = [];
 
   for (const item of items) {
@@ -88,19 +89,31 @@ export async function POST(req: Request) {
       qty,
       price: product.price,
       image: product.image,
+      productId: product.productId || "",
     });
   }
 
   const subtotal = lineItems.reduce((sum, i) => sum + i.price * i.qty, 0);
-  const shipping = shippingFor(subtotal);
+  const baseShipping = shippingFor(subtotal);
 
   /* ── Coupon (optional) ─────────────────────────────────────── */
   let discount = 0;
+  let shipping = baseShipping;
   let appliedCouponCode: string | null = null;
   if (couponCode) {
     const coupon = findCoupon(couponCode);
     if (!coupon) return bad("That coupon code isn't valid.");
-    discount = computeDiscount(coupon, subtotal + shipping);
+    const minUnits = minUnitsRequired(coupon);
+    const units = lineItems.reduce((sum, i) => sum + i.qty, 0);
+    if (minUnits > 0 && units < minUnits) {
+      return bad(`Add at least ${minUnits} items to your cart to use this coupon.`);
+    }
+    shipping = shippingOverride(coupon) ?? baseShipping;
+    discount = computeDiscount(coupon, {
+      subtotal,
+      shipping,
+      items: lineItems.map((i) => ({ price: i.price, qty: i.qty })),
+    });
     appliedCouponCode = coupon.code;
   }
 

@@ -11,9 +11,15 @@ export type Product = {
   sourcingPrice: number;
   /** Internal sourcing reference — never rendered in the UI */
   sourcingRef: string;
+  /** Your own product/SKU ID for internal tracking — never rendered on the storefront, shown in the admin orders panel */
+  productId?: string;
   rating: number;
   reviews: number;
   image: string;
+  /** Full photo gallery for the product page — falls back to just [image] if empty */
+  images?: string[];
+  /** Optional product video URL */
+  video?: string;
   accent: string;
   sizes: string[];
   description: string;

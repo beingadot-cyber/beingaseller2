@@ -6,7 +6,7 @@ import { listActiveProducts } from "@/db/products-repo";
 export const metadata: Metadata = {
   title: "Shop the Drop",
   description:
-    "Six hand-picked streetwear pieces rated 4.5+. Prepaid only, no COD, no returns — ships across India in 24–48 hrs.",
+    "Six hand-picked streetwear pieces rated 4.5+. Prepaid only, no COD, no returns — delivered across India in 7–10 days.",
 };
 
 export const dynamic = "force-dynamic";
@@ -35,7 +35,7 @@ export default async function ProductsPage() {
         </div>
         <div className="border-t border-line py-3 text-fog">
           <MarqueeRow>
-            {["240 GSM tees", "400 GSM fleece", "12oz denim", "4.5+ rated only", "Prepaid · secure checkout", "Ships in 24–48 hrs"].map(
+            {["240 GSM tees", "400 GSM fleece", "12oz denim", "4.5+ rated only", "Prepaid · secure checkout", "Delivered in 7–10 days"].map(
               (t, i) => (
                 <span
                   key={i}
